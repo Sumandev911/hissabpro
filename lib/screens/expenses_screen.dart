@@ -311,7 +311,7 @@ class _AddExpenseSheetState extends State<_AddExpenseSheet> {
     final picked = await showDatePicker(
       context: context,
       initialDate: _selectedDate,
-      firstDate: DateTime(2020),
+      firstDate: DateTime.now().subtract(const Duration(days: 365 * 5)),
       lastDate: DateTime.now(),
     );
     if (picked != null) setState(() => _selectedDate = picked);
