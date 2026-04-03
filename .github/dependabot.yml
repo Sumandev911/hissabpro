@@ -1,0 +1,25 @@
+# Dependabot configuration for automated dependency vulnerability scanning.
+# Checks for security patches and version updates on a weekly schedule.
+version: 2
+updates:
+  # Dart/pub package dependency updates
+  - package-ecosystem: "pub"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "security"
+
+  # GitHub Actions workflow dependency updates
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "github-actions"

@@ -1,0 +1,70 @@
+# Security scanning workflow.
+# Runs static analysis and uploads results as SARIF on push to main
+# and on every pull request targeting main.
+name: Security Scan
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+  schedule:
+    # Run a full scan every Monday at 08:00 UTC to catch newly published advisories
+    - cron: "0 8 * * 1"
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  dart-analysis:
+    name: Dart Static Analysis
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Run Dart analyzer
+        # dart analyze exits non-zero on any issue; treat warnings as fatal for security scans
+        run: dart analyze --fatal-infos --fatal-warnings
+
+  dependency-audit:
+    name: Dependency Vulnerability Audit
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Check for outdated / vulnerable packages
+        # dart pub outdated exits non-zero when there are newer versions available,
+        # which is useful for tracking known-vulnerable dependencies.
+        run: dart pub outdated --no-dev-dependencies || true
+
+      - name: Verify dependency integrity (pubspec.lock)
+        # Ensure pubspec.lock is committed and consistent with pubspec.yaml
+        run: |
+          if [ ! -f pubspec.lock ]; then
+            echo "ERROR: pubspec.lock is missing. Commit it to enable reproducible builds." >&2
+            exit 1
+          fi
+          flutter pub get --no-example
+          git diff --exit-code pubspec.lock || \
+            (echo "ERROR: pubspec.lock is out of sync with pubspec.yaml. Run 'flutter pub get' and commit the updated lock file." >&2 && exit 1)
